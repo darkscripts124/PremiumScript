@@ -527,7 +527,7 @@ helpButton.MouseButton1Click:Connect(function()
 end)
 
 getKeyButton.MouseButton1Click:Connect(function()
-    local url="https://xmodderpremium.github.io/XModder"
+    local url="https://xmodder.vercel.app/"
     if setclipboard then setclipboard(url) end
     showNotification("🔑 Link copied — paste it into your browser.","success")
 end)
