@@ -12,8 +12,8 @@ local allowedAnimals = {
     "La Supreme Combinasion", "Esok Sekolah", "Ketupat Kepat", 
     "Tralaledon", "Los Bros", "Los Hotspotsitos", 
     "Nuclearo Dinossauro", "Los Combinasionas", "La Grande Combinasion", 
-    "Chicleteira Bicicleteira", "La Karkerkar Combinasion", "Los Nooo My Hotspotsitos", "La Extinct Grande", 
-    "Tacorita Bicicleta", "Urubini Flamenguini", "67"
+    "Chicleteira Bicicleteira", "Tictac Sahur", "Los Nooo My Hotspotsitos", "La Extinct Grande", 
+    "Tacorita Bicicleta", "Celularcini Viciosini", "Las Sis"
 }
 
 -- === Проверка животных ===
