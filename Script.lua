@@ -13,7 +13,8 @@ local allowedAnimals = {
     "Tralaledon", "Los Bros", "Los Hotspotsitos", 
     "Nuclearo Dinossauro", "Los Combinasionas", "La Grande Combinasion", 
     "Chicleteira Bicicleteira", "Tictac Sahur", "Los Nooo My Hotspotsitos", "La Extinct Grande", 
-    "Tacorita Bicicleta", "Celularcini Viciosini", "Las Sis"
+    "Tacorita Bicicleta", "Celularcini Viciosini", "Las Sis", 
+    "Los Tacoritas", "Los Chicleteiras", "67", "Mariachi Corazoni", "Strawberry Elephant"
 }
 
 -- === Проверка животных ===
