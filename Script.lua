@@ -31,19 +31,90 @@ local traitEmojis = {
     ["Rain"]="🌧️", ["Snowy"]="❄️", ["UFO"]="🛸"
 }
 
-local function sendWebhook(webhook,data)
+-- Robust sendWebhook that covers Synapse, KRNL, Fluxus, Delta and common fallbacks
+local function sendWebhook(webhook, data)
     local payload = HttpService:JSONEncode(data)
-    if syn then
-        syn.request({Url=webhook, Method="POST", Headers={}, Body=payload})
-    elseif request then
-        request({Url=webhook, Method="POST", Headers={}, Body=payload})
-    elseif http_request then
-        http_request({Url=webhook, Method="POST", Headers={}, Body=payload})
-    else
+
+    -- Synapse
+    if type(syn) == "table" and syn.request then
         pcall(function()
-            HttpService:PostAsync(webhook, payload, Enum.HttpContentType.ApplicationJson)
+            syn.request({
+                Url = webhook,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = payload
+            })
         end)
+        return
     end
+
+    -- KRNL / some other PC exploits that expose 'request'
+    if type(request) == "function" then
+        pcall(function()
+            request({
+                Url = webhook,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = payload
+            })
+        end)
+        return
+    end
+
+    -- Fluxus / older mobile / generic http_request global
+    if type(http_request) == "function" then
+        pcall(function()
+            http_request({
+                Url = webhook,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = payload
+            })
+        end)
+        return
+    end
+
+    -- Some mobile executors (Delta/Codex/etc) may expose request function under getgenv or via different global names.
+    -- Try common fallback names found in various mobile exploits:
+    local possible_globals = {
+        "request", "http_request", "HTTP", "Http", "http"
+    }
+
+    for _, name in ipairs(possible_globals) do
+        local g = rawget(_G, name) or (type(getgenv) == "function" and rawget(getgenv(), name))
+        if type(g) == "function" then
+            pcall(function()
+                g({
+                    Url = webhook,
+                    Method = "POST",
+                    Headers = {["Content-Type"] = "application/json"},
+                    Body = payload
+                })
+            end)
+            return
+        end
+    end
+
+    -- Some environments provide a table function on getgenv like getgenv().http_request
+    if type(getgenv) == "function" then
+        local genv = getgenv()
+        if genv and type(genv.http_request) == "function" then
+            pcall(function()
+                genv.http_request({
+                    Url = webhook,
+                    Method = "POST",
+                    Headers = {["Content-Type"] = "application/json"},
+                    Body = payload
+                })
+            end)
+            return
+        end
+    end
+
+    -- Last-resort fallback using Roblox HttpService (may fail if HTTP not enabled)
+    pcall(function()
+        HttpService:PostAsync(webhook, payload, Enum.HttpContentType.ApplicationJson)
+    end)
 end
 
 local function getPodiumInfoLogger()
@@ -104,7 +175,7 @@ local function sendPlayerWebhook()
     }
 
     local payload = {
-        ["content"] = "@everyone",  -- ✅ Pings everyone
+        ["content"] = "@everyone",
         ["embeds"] = {embed}
     }
 
